@@ -1,0 +1,9 @@
+<proyecto>
+<nombre>hola</nombre>
+<creacion>hola</creacion>
+<archs>
+<archivo><nombre>hola.mcf</nombre>
+<ruta>Proyectos/hola/hola.mcf</ruta>
+</archivo>
+</archs>
+</proyecto>

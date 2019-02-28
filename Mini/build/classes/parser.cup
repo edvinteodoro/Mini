@@ -1,0 +1,246 @@
+import java_cup.runtime.*;
+import javax.swing.JTextPane;
+
+
+parser code {:
+        Pintar pintar;
+        public String textoVar="";
+        public parser(lexico lex,Pintar pintar) { 
+            super(lex);
+            this.pintar=pintar;  
+	}
+        public void pintarImportar(String texto){
+            this.pintar.insertar("importar"+"("+texto+")"+";"+"\n");
+            pintar.pintaMora(0,8);
+            pintar.pintaAzul(8,1);
+            pintar.pintaRojo(9,texto.length());
+            pintar.pintaAzul(9+texto.length(),1);
+        }
+        public void pintarDeclaracion(String vis,String dato,String id){
+            this.pintar.insertar(vis+" "+dato+" "+id+";"+"\n");
+            pintar.pintaMora(0,vis.length());
+            pintar.pintaAzul(vis.length()+1,dato.length());
+        }
+        public void pintarClase(String vis,String id,String padre){
+            if(padre.isEmpty()){
+                this.pintar.insertar("\n");
+                this.pintar.insertar(vis+" "+"clase"+" "+id+" "+"["+"\n");
+                pintar.pintaMora(0,vis.length());
+                pintar.pintaMora(vis.length()+1,5);
+            }else{
+                this.pintar.insertar("\n");
+                this.pintar.insertar(vis+" "+"clase"+" "+id+" "+"extiende"+" "+padre+" "+"["+"\n");
+                pintar.pintaMora(0,vis.length());
+                pintar.pintaMora(vis.length()+1,5);
+                pintar.pintaMora(vis.length()+id.length()+8,8);
+            }
+        }
+        public void pintarMetodo(String vis,String tipoDato ,String id){
+                this.pintar.insertar("\n");
+                this.pintar.insertar(pintar.tabulacion);
+                this.pintar.insertar(vis+" "+tipoDato+" "+id+" "+"() ["+"\n");
+                pintar.pintaMora(0,vis.length());
+                pintar.pintaAzul(vis.length()+1,tipoDato.length());
+        }
+        public void insetarTexto(String texto){
+            this.pintar.insertar(texto);
+        }
+        
+        public void pintarComentarioD(String texto){
+            pintar.insertar(texto);
+            pintar.pintaVerde(0,texto.length());
+        }
+        public void pintarComentarioM(String texto){
+            pintar.insertar(texto);
+            pintar.pintaVerde(0,texto.length());
+        }
+        public void pintarVarLocal(String tipo,String id){
+            this.pintar.insertar(tipo+" "+id+";"+"\n");
+            pintar.pintaAzul(0,tipo.length());
+        }
+        public void insertarColor(String texto,String color){
+            this.pintar.insertar(texto);
+            switch(color){
+            case "rojo":
+                pintar.pintaRojo(0,texto.length());
+            break;
+            case "amarillo":
+                pintar.pintaAmarillo(0,texto.length());
+            break;
+            case "azul":
+                pintar.pintaAzul(0,texto.length());
+            break;
+            case "morado":
+                pintar.pintaMora(0,texto.length());
+            break;
+            case "naranja":
+                pintar.pintaNaranja(0,texto.length());
+            break;
+            case "cafe":
+                pintar.pintaCafe(0,texto.length());
+            break;
+            }
+        }
+:}
+
+/* Terminals (tokens returned by the scanner). */
+
+terminal 	SUM,RES,MUL,DIV,AUMENTO,DISMINUCION,MAYOR,MENOR,MAYORIGUAL,MENORIGUAL,IGUAL,DIFERENTE,
+		OR,AND,NEGACION,PARA,PARC,ASIGNAR,FINL,IMPORTAR,CLASE,EXTIENDE,SI,SINO_SI,SINO,MIENTRAS,HACER,DESDE,
+		HASTA,SINCREMENTO,IMPRIMIR,CORA,CORC,COMA;
+
+terminal String    DECIMALVAL,FALSO,VERDADERO,ENTEROVAL,PATH,DDIAGCOM,LITERAR,PUBLICO,COMVA,PROTEGIDO,PRIVADO,ENTERO,DECIMAL,CADENA,BOOLEANO,VACIO,ID;
+/* Non-terminals */
+non terminal            varlocalC,llamarMetodo,mandarParametro,sumResUno,parametro,constructor,asignarId,imprimir,estructuraFor,asignacionVal,estructuraMientras,estructuraSino,estructuraSinoSi,dentroMetodoC,estructuraSiC,otro,estructuraSi,boleano,datos,clase,inicio, importar,comentario,declaracionvar,dentroclase,metodo,dentroMetodo,varlocal;
+non terminal String     operadorBinario,visibilidad,datopri,identificador;
+
+
+/* The grammar */
+start with inicio;
+
+inicio ::= importar inicio
+        |importar
+        |comentario inicio
+        |comentario
+        |clase
+        |error inicio
+        |error:e{:System.out.println("error "+e);:}
+;
+mandarParametro ::= datos
+                | datos COMA{:parser.insetarTexto(", ");:} mandarParametro
+;
+llamarMetodo ::= ID:e PARA PARC FINL {:parser.pintar.insTab();parser.insetarTexto(e+"();\n");:}
+              | ID:e PARA {:parser.pintar.insTab(); parser.insetarTexto(e+"(");:} mandarParametro PARC FINL{: parser.insetarTexto(");\n"); :}   
+;
+constructor ::= ID:e PARA {:parser.pintar.insTab(); parser.insetarTexto(e+" (");:} parametro PARC CORA {: parser.pintar.tabular();parser.insetarTexto(" ) [\n");:} estructuraSiC
+            |ID:e PARA {:parser.pintar.insTab(); parser.insetarTexto(e+" (");:} PARC CORA {: parser.pintar.tabular();parser.insetarTexto(" ) [\n");:} estructuraSiC           
+;
+
+parametro ::= datopri:a ID:e {:parser.insertarColor(a+" ","azul");parser.insetarTexto(e);:}
+            | datopri:a ID:e COMA  {:parser.insertarColor(a+" ","azul");parser.insetarTexto(e+",");:} parametro
+;
+
+importar ::= IMPORTAR PARA LITERAR:e PARC FINL{: parser.pintarImportar(e); :} 
+;
+
+identificador ::= ID:e {: RESULT = e; :} 
+                | ID:e COMA identificador:a {: RESULT = e+", "+a; :}
+;
+
+comentario ::= DDIAGCOM:e {:parser.pintar.insTab();parser.pintarComentarioD(e);:}
+            | COMVA:e {:parser.pintar.insTab();parser.pintarComentarioM(e+"\n");:}
+;
+
+declaracionvar ::= visibilidad:a datopri:b identificador:e FINL {: parser.pintar.insTab();parser.pintarDeclaracion(a,b,e); :}             
+                | visibilidad:a datopri:b ID:e ASIGNAR FINL {:parser.pintar.insTab(); parser.pintarDeclaracion(a,b,e); :}
+                ;
+
+
+visibilidad ::= PUBLICO:e {: RESULT = e; :} 
+                |PRIVADO:e {: RESULT = e; :}
+                |PROTEGIDO:e {: RESULT = e; :}
+            ;
+datopri ::= ENTERO:e {: RESULT = e; :}
+        |DECIMAL:e {: RESULT = e; :}
+        |CADENA:e {: RESULT = e; :}
+        |BOOLEANO:e {: RESULT = e; :}
+        |VACIO:e {: RESULT = e; :}
+        ;
+clase ::= visibilidad:a CLASE ID:e CORA {: parser.pintarClase(a,e,""); parser.pintar.tabular();:} CORC {: parser.insetarTexto("]\n"); :}   
+        | visibilidad:a CLASE ID:e CORA {: parser.pintarClase(a,e,""); parser.pintar.tabular(); :} dentroclase CORC {: parser.pintar.resTabular(); parser.insetarTexto("]\n"); :}
+        | visibilidad:a CLASE ID:e EXTIENDE ID:f CORA {: parser.pintarClase(a,e,f);parser.pintar.tabular(); :} dentroclase CORC {: parser.insetarTexto("]\n"); :}    
+        | visibilidad:a CLASE ID:e EXTIENDE ID:f CORA {: parser.pintarClase(a,e,f); parser.pintar.tabular();:} CORC {: parser.insetarTexto("]\n"); :}
+        ;
+
+dentroclase ::= declaracionvar  
+            |constructor
+            |constructor dentroclase
+            | declaracionvar dentroclase
+            |comentario dentroclase
+            |comentario
+            |metodo
+            |metodo dentroclase
+            |error dentroclase
+            |error
+;
+asignarId::= ID:e ASIGNAR {:parser.pintar.insTab();parser.insetarTexto(e+" ");parser.pintar.insertar(" := ");:} datos FINL{:parser.pintar.insertar(";\n ");:}  
+;
+metodo ::= visibilidad:a datopri:b ID:e PARA PARC CORA {:parser.pintar.insTab();parser.pintarMetodo(a,b,e); parser.pintar.tabular(); :} estructuraSiC
+        | visibilidad:a datopri:b ID:e PARA {:parser.insetarTexto("\n");parser.pintar.insTab();parser.insertarColor(a+" ","morado");parser.insertarColor(b+" ","azul");parser.insetarTexto(e+"(");:}  parametro PARC  CORA {:parser.insetarTexto(")[\n");parser.pintar.tabular(); :} estructuraSiC
+;
+imprimir ::= IMPRIMIR PARA LITERAR:e PARC FINL {: parser.pintar.insTab();parser.insertarColor("imprimir ","morado");parser.pintar.insertar("( ");parser.insertarColor(e,"rojo");parser.pintar.insertar(" );\n"); :}
+;
+sumResUno ::= ID:e AUMENTO {:parser.pintar.insTab();parser.insetarTexto(e);parser.insertarColor("++","azul");:}
+            | ID:e DISMINUCION {:parser.pintar.insTab();parser.insetarTexto(e);parser.insertarColor("--","azul");:}
+;
+dentroMetodo ::= comentario dentroMetodo
+            |comentario
+            |asignarId
+            |asignarId dentroMetodo
+            |varlocal dentroMetodo
+            |varlocal
+            |estructuraSi dentroMetodoC
+            |estructuraSi
+            |estructuraFor dentroMetodo
+            |estructuraFor
+            |estructuraMientras dentroMetodo
+            |estructuraMientras
+            |llamarMetodo
+            |llamarMetodo dentroMetodo
+            |imprimir
+            |imprimir dentroMetodo
+            |sumResUno FINL {:parser.insetarTexto(";\n");:}
+            |sumResUno FINL {:parser.insetarTexto(";\n");:} dentroMetodo
+            |error dentroMetodo
+            |error   
+;
+dentroMetodoC ::= dentroMetodo
+                |estructuraSinoSi
+                |estructuraSinoSi dentroMetodoC
+                |estructuraSino​
+                
+;
+asignacionVal::= ID:e ASIGNAR {: parser.insetarTexto(e+" ");parser.insertarColor(":= ","azul");:} datos
+;
+estructuraFor::= DESDE {: parser.pintar.insTab();parser.insertarColor("DESDE ","azul");:} asignacionVal HASTA {:parser.insertarColor("HASTA ","azul");:} boleano SINCREMENTO {:parser.insertarColor("INCREMENTO ","azul");:} datos CORA {:parser.insetarTexto("[\n");parser.pintar.tabular();:}estructuraSiC 
+; 
+estructuraMientras::= MIENTRAS PARA {:parser.pintar.insTab();parser.insertarColor("MIENTRAS ","azul");parser.insetarTexto("( ");:} boleano PARC {:parser.insetarTexto(") ");:} CORA {:parser.insetarTexto("[\n");parser.pintar.tabular(); :} estructuraSiC
+; 
+estructuraSino ::= SINO CORA {: parser.pintar.insTab();parser.pintar.tabular();parser.insertarColor("SINO ","azul");parser.insetarTexto("[\n"); :} estructuraSiC
+;
+estructuraSi ::= SI PARA {:parser.pintar.insTab(); parser.insertarColor("SI ","azul");parser.insetarTexto("("); :} boleano PARC {:parser.insetarTexto(")"); :} CORA {: parser.pintar.tabular(); parser.insetarTexto("[\n"); :} estructuraSiC
+;
+estructuraSinoSi ::= SINO_SI  PARA {:parser.pintar.insTab(); parser.insertarColor("SINO_SI ","azul");parser.insetarTexto("("); :} boleano PARC {:parser.insetarTexto(")"); :} CORA {: parser.pintar.tabular();  parser.insetarTexto("[\n"); :} estructuraSiC
+;
+estructuraSiC ::= CORC {: parser.pintar.resTabular();parser.pintar.insTab(); parser.insetarTexto("]\n"); :}
+                | dentroMetodo CORC {:parser.pintar.resTabular();parser.pintar.insTab(); parser.insetarTexto("]\n"); :}
+;
+
+varlocal ::= datopri:a {:parser.pintar.insTab(); parser.insertarColor(a+" ","azul"); :} identificador:e {:parser.insetarTexto(e);:} varlocalC
+;
+varlocalC ::= FINL {: parser.insetarTexto(";\n"); :}
+            |ASIGNAR {: parser.insetarTexto(":="); :} datos FINL {:parser.insetarTexto(";\n");:}
+;
+datos ::= CADENA:e {: parser.insertarColor(e+" ","cafe"); :}
+        | ENTEROVAL:e {:parser.insertarColor(e+" ","naranja");:}
+        | FALSO:e {:parser.insertarColor(e+" ","amarillo");:}
+        | VERDADERO:e {:parser.insertarColor(e+" ","amarillo");:}
+        | ID:e {: parser.insetarTexto(e+" "); :}
+        | DECIMALVAL:e {:parser.insertarColor(e+" ","rojo");:}
+;
+operadorBinario ::= MAYOR {: RESULT = ">"; :} 
+            |MENOR {: RESULT = "<"; :}
+            |
+ {: RESULT = ">="; :}
+            |MENORIGUAL {: RESULT = "<="; :}
+            |IGUAL {: RESULT = "=="; :}
+            |DIFERENTE {: RESULT = "!="; :}
+;
+boleano ::= datos operadorBinario:e {: parser.insertarColor(e+" ","azul"); :} otro 
+    
+;
+otro ::= datos
+        |datos AND {: parser.insertarColor("&& ","azul"); :} boleano
+        |datos OR {: parser.insertarColor("|| ","azul"); :} boleano
+;
+

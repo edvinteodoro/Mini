@@ -1,0 +1,59 @@
+import java_cup.runtime.*;
+import javax.swing.JTextPane;
+
+
+parser code {:
+        Escritorio escritorio;        
+        public parser2(lexico2 lex,Escritorio escritorio) { 
+            super(lex);
+            this.escritorio=escritorio;
+	}       
+:}
+
+/* Terminals (tokens returned by the scanner). */
+
+terminal            EPROYECTO,EPROYECTOC,ENOMBRE,ENOMBREC,ECREACION,ECREACIONC,ERUTA,
+                    ERUTAC,EARCHIVO,EARCHIVOC,EPAQUETE,EPAQUETEC,EARCHS,EARCHSC;
+
+terminal String     TEXTO,PATH;
+
+/* Non-terminals */
+non terminal            paquete,dentroArchivo,creacion,nombre,archivos,cuerpoC,numArchivos,cabeza,inicio,cuerpo,archs,ruta;
+non terminal String     textos;
+
+/* The grammar */
+start with inicio;
+
+
+inicio ::= EPROYECTO {:parser.escritorio.contenidoArchivo.add("<proyecto>\n");:} cabeza cuerpo {:parser.escritorio.contenidoArchivo.add("</proyecto>"); parser.escritorio.escribir(); :} EPROYECTOC  
+;
+cabeza ::= nombre creacion
+;
+nombre ::=  ENOMBRE TEXTO:e ENOMBREC {:parser.escritorio.contenidoArchivo.add("<nombre>"+e+"</nombre>\n"); parser.escritorio.addNodo(0,e); parser.escritorio.nomActual=e;:} 
+;
+creacion ::= ECREACION TEXTO:e ECREACIONC  {:parser.escritorio.contenidoArchivo.add("<creacion>"+e+"</creacion>\n");:}
+;
+archs ::= EARCHS {: parser.escritorio.contenidoArchivo.add("<archs>\n"); parser.escritorio.addFileList(parser.escritorio.nomActual,0); :} numArchivos EARCHSC {:parser.escritorio.contenidoArchivo.add("</archs>\n");parser.escritorio.addFileList(parser.escritorio.nomActual,1);:}
+        |EARCHS {: parser.escritorio.contenidoArchivo.add("<archs>\n");parser.escritorio.addFileList(parser.escritorio.nomActual,0); :}  EARCHSC {:parser.escritorio.contenidoArchivo.add("</archs>\n");parser.escritorio.addFileList(parser.escritorio.nomActual,1); :}
+;
+paquete ::= EPAQUETE {:parser.escritorio.contenidoArchivo.add("<paquete>\n");:} nombre  cuerpoC
+;   
+cuerpo  ::= archs cuerpo
+        |archs
+        |paquete
+;
+cuerpoC ::= cuerpo EPAQUETEC {:parser.escritorio.contenidoArchivo.add("</paquete>\n"); parser.escritorio.quitar(); :}
+        | cuerpo EPAQUETEC {:parser.escritorio.contenidoArchivo.add("</paquete>\n"); parser.escritorio.quitar();:} cuerpo
+        |EPAQUETEC {:parser.escritorio.contenidoArchivo.add("</paquete>\n"); parser.escritorio.quitar(); :}
+        | EPAQUETEC {:parser.escritorio.contenidoArchivo.add("</paquete>\n"); parser.escritorio.quitar();:} cuerpo
+        
+;
+numArchivos ::= archivos
+            | archivos numArchivos
+;
+dentroArchivo::=ENOMBRE TEXTO:a {:parser.escritorio.contenidoArchivo.add("<nombre>"+a); :} ENOMBREC {:parser.escritorio.contenidoArchivo.add("</nombre>\n"); :} ruta
+;
+archivos   ::= EARCHIVO {:parser.escritorio.contenidoArchivo.add("<archivo>");:} dentroArchivo EARCHIVOC {:parser.escritorio.contenidoArchivo.add("</archivo>\n");:} 
+;
+ruta ::= ERUTA PATH:e {:parser.escritorio.contenidoArchivo.add("<ruta>"+e); :} ERUTAC {:parser.escritorio.contenidoArchivo.add("</ruta>\n"); :}
+;

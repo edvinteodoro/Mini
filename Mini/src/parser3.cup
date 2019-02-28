@@ -1,0 +1,62 @@
+import java_cup.runtime.*;
+import javax.swing.JTextPane;
+
+
+parser code {:
+        Escritorio escritorio;        
+        public parser2(lexico2 lex,Escritorio escritorio) { 
+            super(lex);
+            this.escritorio=escritorio;
+	}       
+:}
+
+/* Terminals (tokens returned by the scanner). */
+
+terminal            EPROYECTO,EPROYECTOC,ENOMBRE,ENOMBREC,ECREACION,ECREACIONC,ERUTA,
+                    ERUTAC,EARCHIVO,EARCHIVOC,EPAQUETE,EPAQUETEC,EARCHS,EARCHSC;
+
+terminal String     TEXTO,PATH;
+
+/* Non-terminals */
+non terminal            paquete,dentroArchivo,creacion,nombre,archivos,cuerpoC,numArchivos,cabeza,inicio,cuerpo,archs,ruta;
+non terminal String     textos;
+
+/* The grammar */
+start with inicio;
+
+
+inicio ::= EPROYECTO cabeza cuerpo EPROYECTOC  
+;
+cabeza ::= nombre creacion
+;
+nombre ::=  ENOMBRE TEXTO:e ENOMBREC {:parser.escritorio.inserNodoTree(e);:} 
+;
+creacion ::= ECREACION TEXTO:e ECREACIONC 
+;
+archs ::= EARCHS  numArchivos EARCHSC 
+        |EARCHS   EARCHSC
+;
+paquete ::= EPAQUETE nombre  cuerpoC
+;
+sumResUno ::= ID:e AUMENTO {:parser.pintar.insTab();parser.insetarTexto(e);parser.insetarColor("++");:}
+            | ID:e DISMINUCION {:parser.pintar.insTab();parser.insetarTexto(e);parser.insetarColor("--");:}
+;    
+cuerpo  ::= archs cuerpo
+        |archs
+        |paquete
+;
+cuerpoC ::= cuerpo EPAQUETEC {: parser.escritorio.regresarNodo(); :}
+        | cuerpo EPAQUETEC {:parser.escritorio.regresarNodo();:} cuerpo
+        |EPAQUETEC {:parser.escritorio.regresarNodo(); :}
+        | EPAQUETEC {:parser.escritorio.regresarNodo(); :} cuerpo
+        
+;
+numArchivos ::= archivos
+            | archivos numArchivos
+;
+dentroArchivo::=ENOMBRE TEXTO:a {: parser.escritorio.inserNodoTree(e); :} ENOMBREC ruta
+;
+archivos   ::= EARCHIVO dentroArchivo EARCHIVOC  
+;
+ruta ::= ERUTA PATH:e  ERUTAC
+;
